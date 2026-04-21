@@ -1,0 +1,95 @@
+===============================================
+ACTIVIDAD.
+Creación de MCP server e integración en una APP
+Fecha de entrega: D.26/04/2026
+===============================================
+
+
+Requisitos
+
+A. 2 X Apis de terceros --> La del tiempo
+
+B. 2 X Apis de herramientas existentes --> Github, Notion
+
+C. 2 X Tools con lógica propia:
+
+
+DESCRIPCIÓN
+-----------
+
+Aplicación que usa red neuronal para entrenar a un modelo con datos de pérdida de grasa [g/min] en función 
+de la instensidad del ejercicio [%]. Los datos de entrenamiento se obtienen del paper original del estudio 
+https://www.researchgate.net/publication/228854514_Fatmax_A_new_concept_to_optimize_fat_oxidation_during_exercise 
+
+Toma los datos de una sesión de entrenamiento (reloj Garmin) de pulsoa lo largo del tiempo. 
+A partir de ahí, se pasa el pulso a intensidad con la Fórmula de Karvonen, con esto datos se hará la predicción
+con el modelo entrenado determiando la pérdida de grasa. Luego será posible graficar los datos predecidos por
+el modelo para la evolución de la pérdida de grasa durante la sesión de entrenamiento, además de verificar
+cuando el deportista estuvo estuvo en el punto óptimo para pérdida de grasa (FATMAX) 
+y cuando entró en consumo glucémico.
+
+
+Fundamentación científica
+-------------------------
+Fundamentación Científica: > Los pesos de la Red Neuronal han sido ajustados mediante aprendizaje supervisado 
+utilizando los resultados del estudio "Fatmax: A new concept to optimize fat oxidation during exercise" (Achten et al., 2002). 
+Se ha modelado la respuesta metabólica para identificar el punto MFO (Maximal Fat Oxidation),
+validando que el algoritmo de Karvonen es el puente necesario para trasladar la teoría del laboratorio
+a la telemetría del reloj Garmin del usuario.
+
+Pipeline de Datos:
+------------------
+
+Fase 1: Extracción. Datos brutos de Garmin ($FC$ vs. Tiempo). El número es solo una etiqueta.
+Fase 2: Normalización (Karvonen). El número se vuelve fluido. Adaptamos el esfuerzo al rango dinámico del atleta ($FC_{reserva}$).
+Fase 3: Inferencia (Red Neuronal). La intensidad entra en la red. La IA busca el patrón oculto de la curva de Jeukendrup.
+Fase 4: Revelación. Obtenemos la pérdida de grasa real [$g/min$]. El dato ya no está disfrazado.
+6. Definición de Estados Metabólicos (Lógica de Negocio):
+FATMAX: Punto donde la predicción de la red neuronal alcanza su valor máximo de oxidación de lípidos.
+Umbral Glucémico: Punto de intensidad donde la curva de grasa cae drásticamente hacia cero, 
+indicando que el cuerpo ha cambiado su combustible principal a glucógeno
+7. Arquitectura de Salida (Visualización):
+   Gráfica Temporal: Evolución de la quema de grasa a lo largo de la sesión.
+   Integración Total: Sumatorio de todas las predicciones (dividido por 60) 
+   para obtener los gramos totales de grasa perdidos en la sesión.
+
+
+La curva de Jeukendrup
+---------------------- 
+Es la representación gráfica de cómo nuestro cuerpo utiliza las grasas y los carbohidratos como combustible 
+a medida que aumenta la intensidad del ejercicio.
+Se llama así en honor a Asker Jeukendrup, el científico que mencionamos antes, quien mapeó este comportamiento 
+metabólico y descubrió que no es una línea recta, sino una curva con un "pico" muy claro.
+
+
+
+Librerías y modelos LLM necesarios
+----------------------------------
+
+Instalamos el modelo mistral a través de ollama:
+ollama pull mistral
+
+Instalamos librerías:
+pip install mcp streamlit tensorflow pandas numpy plotly scikit-learn
+
+- mcp: Es el corazón del proyecto. Permite que tus herramientas sean visibles y consumibles por cualquier cliente de IA.
+- tensorflow: El motor de Keras. Es la biblioteca que usaremos para crear la Red Neuronal que "aprende" la curva de Jeukendrup.
+- streamlit: La herramienta para crear la interfaz visual. Es donde mostrarás las gráficas de pérdida de grasa y el punto de FatMax.
+- pandas: Crucial para manejar el CSV de entrenamiento y procesar los datos que extraigas del Garmin.
+- numpy: Para realizar cálculos matemáticos rápidos sobre los arrays de datos (necesario para Karvonen).
+- plotly: Para que tus gráficas no sean simples imágenes, sino interactivas. Podrás pasar el ratón por la curva y ver los $g/min$ exactos.
+- scikit-learn: Nos servirá para pre-procesar los datos (por ejemplo, escalar la intensidad a un rango $0-1$) antes de dárselos a la Red Neuronal.
+
+
+ESTRUCTURA TÉCNICA DEL PROYECTO:
+--------------------------------
+1. IA DE RAZONAMIENTO: Mistral 7B (vía Ollama) - Ejecución Local (GPU RTX 3060).
+2. IA DE PREDICCIÓN: Red Neuronal Keras (Modelo .h5) - Lógica Propia.
+
+APIS Y TOOLS:
+- API Ext 1: OpenWeather (Clima actual para corrección metabólica).
+- API Ext 2: IP-API (Localización automática del atleta).
+- API Herram. 1: Plotly (Generación de analítica visual).
+- API Herram. 2: Pandas (Estructuración de telemetría Garmin).
+- Tool Propia 1: Algoritmo Karvonen (Normalización de esfuerzo).
+- Tool Propia 2: Inferencia Keras (Desenmascaramiento de oxidación de grasa).

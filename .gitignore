@@ -1,0 +1,25 @@
+# Entorno Virtual
+venv/
+env/
+.env
+
+Ejemplos/
+Enunciado/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Datos y Modelos (Opcional: puedes subir el .h5 si es pequeño, pero mejor no los datasets gigantes)
+*.fit
+*.csv
+# modelo_fatmax.h5  <-- Decide si quieres subirlo o que el usuario lo entrene
+
+# IDEs
+.vscode/
+.idea/
+
+# Sistema
+.DS_Store
+Thumbs.db
