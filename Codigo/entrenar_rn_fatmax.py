@@ -25,12 +25,16 @@ def obtener_datos_entrenamiento():
 #en cada época calcula el error cuadrático medio (MSE) y se espera que baje
 #podemos acceder a el valor del MSE en cada época a través del objeto model que continen una lista (loss)
 #El MSE le sirve al optimizador ADAM para saber cuando debe ajustar los pesos de la neuronas en la siguiente época (epochs)
+#NOTA relu usa la función max(0, x) si x > 0 el valor pasa tal cual. si el valor x <= 0 lo convierte en cero, lo bloquea y en la siguiente epoch la neurona se apaga (Dying ReLu)
+#Los valores de x son la "suma" que hace la neurona con los valores que la entran. Las neuronas tienen tantas entradas como neuronas había en la capa anterior
 def crear_modelo_rn():
     """Define la estructura de la Red Neuronal."""
     model = tf.keras.Sequential([
-        layers.Dense(32, activation='relu', input_shape=(1,)),
-        layers.Dense(16, activation='relu'),
-        layers.Dense(1) 
+        layers.Dense(32, activation='relu', input_shape=(1,)),  #1ª capa oculta 32 neuronas 1 sola entrada cada neurona (pq recibe solo un dato de VO2)
+                                                                #-> input_sahpe = (1,) le dice que solo va a recibir un dato a la vez (el valor de VO2)
+
+        layers.Dense(16, activation='relu'),                    #2ª capa oculta -> 16 neuronas -> 32 entradas cada una
+        layers.Dense(1)                                         #Neurona de salida, 16 entradas. Todo colapsa en un solo número (1 valor de tasa de oxidación de grasa)
     ])
     model.compile(optimizer='adam', loss='mse')
     return model
