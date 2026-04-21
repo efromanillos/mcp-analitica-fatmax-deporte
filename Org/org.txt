@@ -7,7 +7,7 @@ Fecha de entrega: D.26/04/2026
 
 Requisitos
 
-A. 2 X Apis de terceros --> La del tiempo
+A. 2 X Apis de terceros --> Info climatológica (Open-Meteo) 
 
 B. 2 X Apis de herramientas existentes --> Github, Notion
 
@@ -87,9 +87,30 @@ ESTRUCTURA TÉCNICA DEL PROYECTO:
 2. IA DE PREDICCIÓN: Red Neuronal Keras (Modelo .h5) - Lógica Propia.
 
 APIS Y TOOLS:
-- API Ext 1: OpenWeather (Clima actual para corrección metabólica).
-- API Ext 2: IP-API (Localización automática del atleta).
-- API Herram. 1: Plotly (Generación de analítica visual).
-- API Herram. 2: Pandas (Estructuración de telemetría Garmin).
+- API Ext 1: Open-Meteo (Clima actual para corrección metabólica) -> https://open-meteo.com/
+- API Ext 2: IP-API (Localización automática del atleta). -> https://ip-api.com/
+- API Herram. 1: Plotly (Visualizar curva FATMAX).
+- API Herram. 2: Pandas (Estructuración de telemetría Garmin) -> fitparse.
 - Tool Propia 1: Algoritmo Karvonen (Normalización de esfuerzo).
 - Tool Propia 2: Inferencia Keras (Desenmascaramiento de oxidación de grasa).
+
+
+
+Códigos climatológicos
+----------------------
+
+
+Código 0	-> Despejado	
+Radiación solar directa; posible aumento de temperatura corporal. 
+
+1, 2, 3 ->	Nubes claras/cubierto	
+Condiciones óptimas para mantener la intensidad estable. 
+
+45, 48 ->	Niebla	
+Humedad alta; afecta la evaporación del sudor. 
+
+51 - 67 ->	Drizzle / Lluvia	
+Riesgo de enfriamiento; el FatMax puede verse alterado por la termorregulación. 
+
+71 - 77 ->	Nieve	
+Resistencia a la rodadura/paso aumentada; mayor gasto energético.
