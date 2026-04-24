@@ -1,14 +1,14 @@
-#===============================
-#MODULO con todas las tools
+#=======================================================
+#MODULO con tools de TERCEROS de clima y geolocalización
 # obtener geolocalización (IP-API)
 # obtener clima -> open-meteo (no requiere api_key)
-# 
-# 
-
-
-
+# ======================================================
 
 import requests
+
+#==================
+# TOOLS DE TERCEROS
+#==================
 
 # TOOL 1: GEOLOCALIZACIÓN (IP-API)
 def obtener_ubicacion_automatica():
@@ -46,6 +46,16 @@ def obtener_clima_local(lat, lon):
         }
     except:
         return {"error": "Servicio no disponible"}
+
+    
+
+
+
+
+
+
+
+
 
     
     #=======

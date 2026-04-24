@@ -70,15 +70,18 @@ Instalamos el modelo mistral a través de ollama:
 ollama pull mistral
 
 Instalamos librerías:
-pip install mcp streamlit tensorflow pandas numpy plotly scikit-learn
+pip install mcp streamlit tensorflow pandas numpy plotly scikit-learn 
 
-- mcp: Es el corazón del proyecto. Permite que tus herramientas sean visibles y consumibles por cualquier cliente de IA.
-- tensorflow: El motor de Keras. Es la biblioteca que usaremos para crear la Red Neuronal que "aprende" la curva de Jeukendrup.
-- streamlit: La herramienta para crear la interfaz visual. Es donde mostrarás las gráficas de pérdida de grasa y el punto de FatMax.
-- pandas: Crucial para manejar el CSV de entrenamiento y procesar los datos que extraigas del Garmin.
-- numpy: Para realizar cálculos matemáticos rápidos sobre los arrays de datos (necesario para Karvonen).
-- plotly: Para que tus gráficas no sean simples imágenes, sino interactivas. Podrás pasar el ratón por la curva y ver los $g/min$ exactos.
-- scikit-learn: Nos servirá para pre-procesar los datos (por ejemplo, escalar la intensidad a un rango $0-1$) antes de dárselos a la Red Neuronal.
+- mcp: Permite que tus herramientas sean visibles por cualquier cliente de IA.
+- Streamlit: La herramienta para crear la interfaz visual. Es donde mostrarás las gráficas de pérdida de grasa y el punto de FatMax.
+- TensorFlow: Gestión y carga del modelo .h5.
+- Numpy: Operaciones matemáticas tras la predicción.
+- Matplotlib: Creación de la gráficas de salida
+- Fitparse: Extracción de datos de frecuencia cardíaca del Garmin Forerunner 255.
+- Requests: Conexión con servicios de terceros (Clima/Geo).
+- Pandas: Manejo del dataset original de entrenamiento
+
+
 
 
 ESTRUCTURA TÉCNICA DEL PROYECTO:
@@ -114,3 +117,7 @@ Riesgo de enfriamiento; el FatMax puede verse alterado por la termorregulación.
 
 71 - 77 ->	Nieve	
 Resistencia a la rodadura/paso aumentada; mayor gasto energético.
+
+
+LIBRERÍAS EMPLEADAS
+

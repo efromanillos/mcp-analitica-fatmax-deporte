@@ -36,7 +36,8 @@ def crear_modelo_rn():
         layers.Dense(16, activation='relu'),                    #2ª capa oculta -> 16 neuronas -> 32 entradas cada una
         layers.Dense(1)                                         #Neurona de salida, 16 entradas. Todo colapsa en un solo número (1 valor de tasa de oxidación de grasa)
     ])
-    model.compile(optimizer='adam', loss='mse')
+    model.compile(optimizer='adam', loss='mse') #El modelo calcula MSE 1 vez por época (comparando la predicción con el valor real) --> Fowardpass
+                                                #y el optimizador ajusta los pesos según el MSE (backpropagation)
     return model
 
 
