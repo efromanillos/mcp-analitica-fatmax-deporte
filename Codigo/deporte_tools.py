@@ -50,30 +50,26 @@ def extraer_datos_fit(ruta_archivo):
 #NOTA: 1% de FCR (Karvonen) es aproximadamente igual a 1% de VO2 Reserva
 #==========================================================================
 
-def obtener_intensidad_karvonen(fc_sesion, fc_max, fc_reposo):
-    """
-    Calcula el % de intensidad real de una sesión.
-    Revela el esfuerzo oculto tras los latidos del FR255.
-    """
-    fc_reserva = fc_max - fc_reposo
-    
-    if fc_reserva <= 0:
-        return 0.0 # Evitamos división entre cero si los datos son erróneos
-        
-    intensidad = (fc_sesion - fc_reposo) / fc_reserva
-    
-    # Devolvemos intensidad redondeada a dos cifras como el dataset original
-    return round(intensidad, 2)
+# Devolvemos lista de intensidades redondeadas a dos cifras como el dataset original
+# La intensidad se ha calculado en tanto por 1 -> 0,70 equivale a 70% de intensidad
+
+def calcular_intensidad_karvonen(fc_sesion_lista, fc_max, fc_reposo):
+    """Calcula una lista de intensidades a partir de una lista de pulsaciones."""
+    reserva = fc_max - fc_reposo
+
+    return [round((fc - fc_reposo) / reserva, 2) for fc in fc_sesion_lista]
+
 
 #===========================================
 #FUNCIÓN convertir intensidad en VO2 [L/min]
 #===========================================
 
-def convertir_intensidad_vo2(intensidad, vo2_max=4.0, vo2_rep=0.25):
-    """
-    Convierte el tanto por uno de Karvonen a L/min 
-    para que la red neuronal reciba los datos de entrada en misma unidad de su entrenamiento .
-    """
-    vo2_reserva = vo2_max - vo2_rep
-    vo2_final = (intensidad * vo2_reserva) + vo2_rep
-    return round(vo2_final, 2)
+# el VO2 max es el volumen de oxígeno máximo que el cuerpo puede procesar (pulmones y sangre)
+# el VO2 reposo es el volumen de oxígeno basal, se consume por estar vivo
+# el VO2 reserva es el que realmente podemos hacer uso para las actividades (andar, correr, etc.)
+# el VO2 total es que se ha consumido dada un nivel de intensidad + el basal (sumando a los largo del tiempode sesión será el total de VO2 de la sesión de entrenamiento)
+
+def convertir_intensidad_en_vo2(intensidad_lista, vo2_max=4.0, vo2_rep=0.25):
+    """Convierte una lista de intensidades en una lista de VO2 total."""
+    reserva_vo2 = vo2_max - vo2_rep
+    return [round((intensidad * reserva_vo2) + vo2_rep, 2) for intensidad in intensidad_lista]
