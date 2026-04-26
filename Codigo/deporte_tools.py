@@ -16,32 +16,54 @@ import datetime
 #a partir de un archivo .fit
 #========================================
 
+#ruta_archivo = 'datos\ruta_llana.fit'
+
+from fitparse import FitFile
+
 def extraer_datos_fit(ruta_archivo):
     fitfile = FitFile(ruta_archivo)
     registros = []
+    info_sesion = {}
 
+    # 1. Extraer Metadatos de la Sesión (FC Máxima, Media, etc.)
+    # Buscamos en 'session' que contiene el resumen global del entrenamiento
+    for session in fitfile.get_messages('session'):
+        v_session = session.get_values()
+        info_sesion = {
+            'fc_max': v_session.get('max_heart_rate'),
+            'fc_media': v_session.get('avg_heart_rate'),
+            'calorias': v_session.get('total_calories'),
+            'distancia_metros': v_session.get('total_distance'),
+            'fecha_hora_inicio_entrenamiento': v_session.get('start_time')
+        }
+        break  # Normalmente solo hay un mensaje de sesión relevante
+
+    # 2. Extraer el segundo a segundo (Records)
     for record in fitfile.get_messages('record'):
         v = record.get_values()
         
-        # El FR255 nos da una riqueza de datos increíble
         datos_fit = {
             'timestamp': v.get('timestamp'),
             'fc': v.get('heart_rate'),
-            'potencia': v.get('power'),       # medida en vatios
-            'altitud': v.get('enhanced_altitude'), 
-            'cadencia': v.get('cadence')
+            #'potencia': v.get('power'), #es necesario un sensor en el pedalier de la bici para tomar estos datos
+            'altitud': v.get('enhanced_altitude') 
+            #'cadencia': v.get('cadence') #necesario sensor para capturar estos datos
         }
         
         # Limpieza de GPS (Semicírculos a Grados)
         lat = v.get('position_lat')
         lon = v.get('position_long')
-        if lat and lon:
-            datos_fit['lat'] = lat * (180.0 / 2**31)
+        if lat is not None and lon is not None:
+            datos_fit['lat'] = lat * (180.0 / 2**31) #hay 2^31 semicirculos en 180 grados. Garmin usa una unidad llamada Semicírculos y no grados
             datos_fit['lon'] = lon * (180.0 / 2**31)
             
         registros.append(datos_fit)
             
-    return registros
+    # Retornamos un dicionario completo
+    return {
+        "metadatos": info_sesion,
+        "puntos": registros
+    }
 
 
 #==========================================================================
@@ -50,7 +72,7 @@ def extraer_datos_fit(ruta_archivo):
 #NOTA: 1% de FCR (Karvonen) es aproximadamente igual a 1% de VO2 Reserva
 #==========================================================================
 
-# Devolvemos lista de intensidades redondeadas a dos cifras como el dataset original
+# Devolvemos lista de intensidades redondeadas a dos cifras como en el dataset original
 # La intensidad se ha calculado en tanto por 1 -> 0,70 equivale a 70% de intensidad
 
 def calcular_intensidad_karvonen(fc_sesion_lista, fc_max, fc_reposo):
@@ -73,3 +95,37 @@ def convertir_intensidad_en_vo2(intensidad_lista, vo2_max=4.0, vo2_rep=0.25):
     """Convierte una lista de intensidades en una lista de VO2 total."""
     reserva_vo2 = vo2_max - vo2_rep
     return [round((intensidad * reserva_vo2) + vo2_rep, 2) for intensidad in intensidad_lista]
+
+
+
+#===================================================
+# FUNCION orquestadora que llama a todas las demás
+# es la función que, Mistral, podrá pedir que se use
+#===================================================
+
+def procesar_sesion_entrenamiento_completo(ruta_archivo, fc_reposo_user=60):
+    """
+    Orquesta la transformación completa: del archivo .fit al VO2.
+    """
+    # 1. Extraer datos (Metadatos + Puntos)
+    resultado = extraer_datos_fit(ruta_archivo)
+    
+    # 2. Preparar lista de FC y obtener la Max real de la sesión
+    fc_lista = [p['fc'] for p in resultado['puntos'] if p['fc'] is not None]
+    fc_max_real = resultado['metadatos'].get('fc_max')
+
+    # Validación de seguridad: si no hay FC max en el archivo, usamos un backup
+    if not fc_max_real:
+        fc_max_real = max(fc_lista) if fc_lista else 180
+
+    # 3. Calcular Intensidades (Usando tu función de Karvonen)
+    intensidades = calcular_intensidad_karvonen(fc_lista, fc_max_real, fc_reposo_user)
+
+    # 4. Convertir a VO2 (Usando tu función de VO2)
+    vo2_datos = convertir_intensidad_en_vo2(intensidades)
+
+    return {
+        "resumen": resultado['metadatos'],
+        "intensidades": intensidades,
+        "vo2_por_segundo": vo2_datos
+    }

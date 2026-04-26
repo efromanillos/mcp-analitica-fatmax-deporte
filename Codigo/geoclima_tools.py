@@ -14,7 +14,7 @@ import requests
 def obtener_ubicacion_automatica():
     """
     Obtiene coordenadas aproximadas mediante la IP.
-    Cumple con el requisito de API de terceros.
+    API de terceros.
     """
     try:
         # Modo gratuito: usa http (no https)
