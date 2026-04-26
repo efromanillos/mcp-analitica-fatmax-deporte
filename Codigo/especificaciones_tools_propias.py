@@ -21,7 +21,7 @@ import ollama
 
 
 
-HERRAMIENTAS_DEPORTE = [
+TOOLS_PROPIAS = [
     {
         'type': 'function',
         'function': {

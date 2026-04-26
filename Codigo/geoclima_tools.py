@@ -50,17 +50,9 @@ def obtener_clima_local(lat, lon):
     
 
 
-
-
-
-
-
-
-
-    
-    #=======
-    #PRUEBAS
-    #=======
+#===================================
+#PRUEBAS: punto de entrada al módulo
+#===================================
 
 if __name__ == "__main__":
     print("--- 🔍 INICIANDO PRUEBA DE HERRAMIENTAS ---")
