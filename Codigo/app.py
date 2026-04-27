@@ -90,13 +90,18 @@ if entrada_usuario := st.chat_input("¿Cómo estuvo mi entrenamiento hoy?"):
                     # a Python (function calling)
                     #Le pasamos al modelo la hora actual para que responda el clima acorde al momento del día (diurno, nocturno)
                     
-                    ahora  = datetime.datetime.now().strftime("%H:%M")
+                    ahora_dt = datetime.datetime.now()
+                    ahora = ahora_dt.strftime("%H:%M")
+                    periodo = "MAÑANA (AM)" if ahora_dt.hour < 12 else "TARDE/NOCHE (PM)"
+
                     contexto_retorno = (
                         f"Resultado de la herramienta {nombre_funcion}: {json.dumps(resultado_tecnico)}. "
-                        f"Hora actual en el laboratorio: {ahora}. "
-                        "Explica estos datos al usuario de forma clara y técnica."
+                        f"Hora actual en el laboratorio: {ahora} ({periodo}). "
+                        "Explica estos datos al usuario de forma clara y técnica. "
                         "Sintetiza la info y da una recomendación de entrenamiento coherente con la hora y el clima."
                     )
+                    
+
                     _, explicacion_final = llm_mistral.enviar_pregunta(contexto_retorno)
                     
                     st.markdown(explicacion_final)
