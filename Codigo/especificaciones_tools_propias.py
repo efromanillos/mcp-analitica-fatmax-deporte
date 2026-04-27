@@ -1,25 +1,13 @@
-
 #===================================================================================
-#MODULO especificaciones_tools_propias.py
-# Se espcifican las tools propias implementadas que puede pedir Mistral
-# La tool especificada es la función orquestadora 
-# "procesar_sesion_entrenamiento_completo()" definida en el módulo deporte_tools.py
+# MODULO especificaciones_tools_propias.py
+# Se especifican las tools propias implementadas que puede pedir Mistral
 #====================================================================================
-
-
-
-
 
 import ollama
 
 # Este es el "manual de instrucciones" con el "menu" de herramientas que le damos a Mistral
-#las  herramientas NO las ejecuta Mistral, solo realiza la petición al servidor para que las ejecute (el desarrollador) a través del hardware del PC
-#Con esto Mistral sabe qué herramientas puede usar
-# especificacion_herramientas.py
-
-# especificacion_herramientas.py
-
-
+# las herramientas NO las ejecuta Mistral, solo realiza la petición al servidor para que 
+# las ejecute el desarrollador a través del hardware del PC.
 
 TOOLS_PROPIAS = [
     {
@@ -42,11 +30,32 @@ TOOLS_PROPIAS = [
                 'required': ['ruta_archivo'],
             },
         },
+    },
+    {
+        'type': 'function',
+        'function': {
+            'name': 'calcular_zonas_entrenamiento',
+            'description': 'Calcula la zona de entrenamiento y el porcentaje de intensidad usando el método Karvonen para un momento puntual o promedio.',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'fc_max': {
+                        'type': 'integer',
+                        'description': 'Frecuencia cardíaca máxima del usuario.'
+                    },
+                    'fc_reposo': {
+                        'type': 'integer',
+                        'description': 'Frecuencia cardíaca en reposo habitual del usuario.'
+                    },
+                    'fc_actual': {
+                        'type': 'integer',
+                        'description': 'Frecuencia cardíaca media de la sesión o valor actual a analizar.'
+                    }
+                },
+                'required': ['fc_max', 'fc_reposo', 'fc_actual'],
+            },
+        },
     }
 ]
 
-
-
-print("Esperando a que Mistral decida qué tools necesita...")
-
-
+print("Esperando a que Mistral decida qué tools necesita del menú de FatMaxLab...")

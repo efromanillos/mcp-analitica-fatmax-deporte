@@ -46,6 +46,16 @@ def procesar_sesion_entrenamiento_completo(ruta_archivo: str, fc_reposo: int = 6
     return deporte_tools.procesar_sesion_entrenamiento_completo(ruta_archivo, fc_reposo)
 
 
+@mcp.tool()
+def calcular_zonas_entrenamiento(fc_max: int, fc_reposo: int, fc_actual: int) -> dict:
+    """
+    Calcula el porcentaje de intensidad y la zona de entrenamiento específica
+    según el método Karvonen. Útil para análisis rápidos sin archivo .fit.
+    """
+    # Llamamos a la lógica pura que está en deporte_tools
+    return deporte_tools.calcular_zonas_entrenamiento(fc_max, fc_reposo, fc_actual)
+
+
 #==========================================
 #TOOLS DE TERCEROS: geolocalizacion y clima
 #==========================================

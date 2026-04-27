@@ -98,10 +98,10 @@ def convertir_intensidad_en_vo2(intensidad_lista, vo2_max=4.0, vo2_rep=0.25):
 
 
 
-#===================================================
-# FUNCION orquestadora que llama a todas las demás
+#=====================================================
+# FUNCION orquestadora que llama a todas las anteriores
 # es la función que, Mistral, podrá pedir que se use
-#===================================================
+#======================================================
 
 def procesar_sesion_entrenamiento_completo(ruta_archivo, fc_reposo_user=60):
     """
@@ -129,3 +129,35 @@ def procesar_sesion_entrenamiento_completo(ruta_archivo, fc_reposo_user=60):
         "intensidades": intensidades,
         "vo2_por_segundo": vo2_datos
     }
+
+
+
+#=================================================================
+# FUNCION para calcular la Zona de entrenamiento 
+# a través del porcentaje de intensidad con la fórmula de Karnoven
+#=================================================================
+
+def calcular_zonas_entrenamiento(fc_max, fc_reposo, fc_actual):
+    """
+    Calcula el porcentaje de intensidad usando la fórmula de Karvonen:
+    % Intensidad = ((FC_actual - FC_reposo) / (FC_max - FC_reposo)) * 100
+    """
+    try:
+        fc_reserva = fc_max - fc_reposo  # Frecuencia Cardíaca de Reserva
+        intensidad = ((fc_actual - fc_reposo) / fc_reserva) * 100
+        
+        # Determinamos la zona de entrenamiento (Patrón de flujo)
+        zona = ""
+        if intensidad < 60: zona = "Zona 1 (Recuperación / Salud)"
+        elif intensidad < 70: zona = "Zona 2 (FatMax - Oxidación de grasas óptima)"
+        elif intensidad < 80: zona = "Zona 3 (Aeróbica - Resistencia)"
+        elif intensidad < 90: zona = "Zona 4 (Umbral Anaeróbico)"
+        else: zona = "Zona 5 (Esfuerzo Máximo)"
+        
+        return {
+            "porcentaje_intensidad": round(intensidad, 2),
+            "zona_entrenamiento": zona,
+            "fc_reserva": fc_reserva
+        }
+    except Exception as e:
+        return {"error": f"Error en el cálculo: {str(e)}"}
