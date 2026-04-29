@@ -78,7 +78,7 @@ if entrada_usuario := st.chat_input("¿Cómo estuvo mi entrenamiento hoy?"):
                     if nombre_funcion in DICCIONARIO_HERRAMIENTAS:
                         try:
                             # Los argumentos fluyen directamente desde el JSON del LLM
-                            # NOTA: Los dos ** es el desempaquetado de diccionarios que hace Python
+                            # NOTA: Los dos ** es el desempaquetado de diccionarios que hace Python, obtiene los valores de las claves
                             resultado_tecnico = DICCIONARIO_HERRAMIENTAS[nombre_funcion](**argumentos) 
                         except Exception as error_ejecucion:
                             resultado_tecnico = {"error": f"Error en la ejecución: {str(error_ejecucion)}"}
@@ -99,6 +99,9 @@ if entrada_usuario := st.chat_input("¿Cómo estuvo mi entrenamiento hoy?"):
                         f"Hora actual en el laboratorio: {ahora} ({periodo}). "
                         "Explica estos datos al usuario de forma clara y técnica. "
                         "Sintetiza la info y da una recomendación de entrenamiento coherente con la hora y el clima."
+                        "REGLA DE MEMORIA: Antes de pedir un dato al usuario (como FC_max o reposo), "
+                        "revisa el historial de arriba. Si ya te los ha dado, NO los vuelvas a pedir, "
+                        "utilízalos directamente para tus conclusiones."
                     )
                     
 

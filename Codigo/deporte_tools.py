@@ -110,22 +110,26 @@ def procesar_sesion_entrenamiento_completo(ruta_archivo, fc_reposo_user=60):
     # 1. Extraer datos (Metadatos + Puntos)
     resultado = extraer_datos_fit(ruta_archivo)
     
-    # 2. Preparar lista de FC y obtener la Max real de la sesión
+    # 2. Preparar lista de FC y obtener el pico máximo alcanzado en la sesión
     fc_lista = [p['fc'] for p in resultado['puntos'] if p['fc'] is not None]
-    fc_max_real = resultado['metadatos'].get('fc_max')
+    
+    # Cambiamos fc_max_real por fc_max_sesion para mayor precisión semántica
+    fc_max_sesion = resultado['metadatos'].get('fc_max')
 
-    # Validación de seguridad: si no hay FC max en el archivo, usamos un backup
-    if not fc_max_real:
-        fc_max_real = max(fc_lista) if fc_lista else 180
+    # Validación de seguridad: si no hay FC max registrada en los metadatos del archivo, 
+    # buscamos el valor más alto dentro de la serie temporal de puntos.
+    if not fc_max_sesion:
+        fc_max_sesion = max(fc_lista) if fc_lista else 180
 
-    # 3. Calcular Intensidades (Usando tu función de Karvonen)
-    intensidades = calcular_intensidad_karvonen(fc_lista, fc_max_real, fc_reposo_user)
+    # 3. Calcular Intensidades (Karvonen) usando el pico de esta sesión específica
+    intensidades = calcular_intensidad_karvonen(fc_lista, fc_max_sesion, fc_reposo_user)
 
-    # 4. Convertir a VO2 (Usando tu función de VO2)
+    # 4. Convertir a VO2 
     vo2_datos = convertir_intensidad_en_vo2(intensidades)
 
     return {
         "resumen": resultado['metadatos'],
+        "fc_max_sesion": fc_max_sesion, # Lo devolvemos explícitamente para que Nemo lo vea
         "intensidades": intensidades,
         "vo2_por_segundo": vo2_datos
     }
