@@ -9,6 +9,7 @@
 
 from fitparse import FitFile
 import datetime
+import rn_utils
 
 
 #========================================
@@ -105,7 +106,7 @@ def convertir_intensidad_en_vo2(intensidad_lista, vo2_max=4.0, vo2_rep=0.25):
 
 def procesar_sesion_entrenamiento_completo(ruta_archivo, fc_reposo_user=60):
     """
-    Orquesta la transformación completa: del archivo .fit al VO2.
+    Orquesta la transformación completa: del archivo .fit al VO2, intensidades, grasas por segundo
     """
     # 1. Extraer datos (Metadatos + Puntos)
     resultado = extraer_datos_fit(ruta_archivo)
@@ -127,11 +128,15 @@ def procesar_sesion_entrenamiento_completo(ruta_archivo, fc_reposo_user=60):
     # 4. Convertir a VO2 
     vo2_datos = convertir_intensidad_en_vo2(intensidades)
 
+    # Obtener Oxidación de Grasas vía Red Neuronal
+    grasas_datos = rn_utils.predecir_oxidacion_grasas(vo2_datos)
+
     return {
         "resumen": resultado['metadatos'],
         "fc_max_sesion": fc_max_sesion, # Lo devolvemos explícitamente para que Nemo lo vea
         "intensidades": intensidades,
-        "vo2_por_segundo": vo2_datos
+        "vo2_por_segundo": vo2_datos,
+        "grasas_por_segundo": grasas_datos # Para gráficas y análisis de Nemo
     }
 
 

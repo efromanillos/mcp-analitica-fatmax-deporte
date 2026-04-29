@@ -40,7 +40,7 @@ mcp = FastMCP("FatMax_Lab")
 def procesar_sesion_entrenamiento_completo(ruta_archivo: str, fc_reposo: int = 60) -> dict:
     """
     Analiza una sesión .fit completa.
-    Devuelve: Metadatos, Intensidad (Karvonen) y VO2 por segundo.
+    Devuelve: Metadatos, Intensidad (Karvonen), VO2 por segundo y oxidación grasas por segundo
     """
     # Esta es la única puerta que necesita Mistral
     return deporte_tools.procesar_sesion_entrenamiento_completo(ruta_archivo, fc_reposo)
@@ -52,7 +52,7 @@ def calcular_zonas_entrenamiento(fc_max: int, fc_reposo: int, fc_actual: int) ->
     Calcula el porcentaje de intensidad y la zona de entrenamiento específica
     según el método Karvonen. Útil para análisis rápidos sin archivo .fit.
     """
-    # Llamamos a la lógica pura que está en deporte_tools
+    # Llamamos a la lógica que está en deporte_tools
     return deporte_tools.calcular_zonas_entrenamiento(fc_max, fc_reposo, fc_actual)
 
 
@@ -78,9 +78,13 @@ def obtener_clima_local(lat: float, lon: float) -> dict:
     return geoclima_tools.obtener_clima_local(lat, lon)
 
 #==========================================
-#TOOLS PARA GRÁFICAS:
+#TOOLS PARA GRÁFICAS: en proceso de implementación!!
 #==========================================
 
 
+
+#=============================
+#Punto de entrada para pruebas
+#=============================
 if __name__ == "__main__":
     mcp.run()
