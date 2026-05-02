@@ -1,91 +1,50 @@
-#=========================================================
-# MODULO. Entrenamiento red neuronal 
-# con datos extraídos del paper (Jeukendrup et al., 2002)
-#=========================================================
-
-
-import numpy as np
+import os
 import tensorflow as tf
 from tensorflow.keras import layers
-import os
+import rn_utils 
 
-# 1. DATOS extraídos de: https://www.researchgate.net/publication/228854514_Fatmax_A_new_concept_to_optimize_fat_oxidation_during_exercise
-
-def obtener_datos_entrenamiento():
-    """Extrae los puntos digitalizados de la gráfica de Jeukendrup."""
-    # X: VO2 (L/min) | y: Fat Oxidation (g/min)
-    X = np.array([1.2, 1.5, 1.8, 2.0, 2.2, 2.6, 3.0, 3.5, 4.0]).reshape(-1, 1)
-    y = np.array([0.28, 0.31, 0.33, 0.34, 0.33, 0.30, 0.25, 0.12, 0.00]).reshape(-1, 1)
-    return X, y
-
-
-
-
-# 2. MODELO
-#en cada época calcula el error cuadrático medio (MSE) y se espera que baje
-#podemos acceder a el valor del MSE en cada época a través del objeto model que continen una lista (loss)
-#El MSE le sirve al optimizador ADAM para saber cuando debe ajustar los pesos de la neuronas en la siguiente época (epochs)
-#NOTA relu usa la función max(0, x) si x > 0 el valor pasa tal cual. si el valor x <= 0 lo convierte en cero, lo bloquea y en la siguiente epoch la neurona se apaga (Dying ReLu)
-#Los valores de x son la "suma" que hace la neurona con los valores que la entran. Las neuronas tienen tantas entradas como neuronas había en la capa anterior
-def crear_modelo_rn():
-    """Define la estructura de la Red Neuronal."""
-    model = tf.keras.Sequential([
-        layers.Dense(32, activation='relu', input_shape=(1,)),  #1ª capa oculta 32 neuronas 1 sola entrada cada neurona (pq recibe solo un dato de VO2)
-                                                                #-> input_sahpe = (1,) le dice que solo va a recibir un dato a la vez (el valor de VO2)
-
-        layers.Dense(16, activation='relu'),                    #2ª capa oculta -> 16 neuronas -> 32 entradas cada una
-        layers.Dense(1)                                         #Neurona de salida, 16 entradas. Todo colapsa en un solo número (1 valor de tasa de oxidación de grasa)
-    ])
-    model.compile(optimizer='adam', loss='mse') #El modelo calcula MSE 1 vez por época (comparando la predicción con el valor real) --> Fowardpass
-                                                #y el optimizador ajusta los pesos según el MSE (backpropagation)
-    return model
-
-
-
-# 3. ENTRENAMIENTO
-def entrenar_modelo(model, X, y, n_epochs=1000):
+def validar_y_guardar_rn(model, history, umbral_mse=0.0005):
     """
-    Ejecuta el entrenamiento y devuelve el historial de métricas.
-    Permite controlar las épocas para pruebas rápidas o entrenamiento real.
+    Solo guarda el modelo si el error final es menor al umbral.
     """
-    print(f"Iniciando entrenamiento ({n_epochs} épocas)...")
-    
-    # Guardamos historial de MSE en cada época
-    historial = model.fit(
-        X, 
-        y, 
-        epochs=n_epochs, 
-        verbose=1 # Ponemos 1 para ver el progreso en la terminal
-    )
-    return historial
-
-
-# 4. MÉTRICA DE RENDIMIENTO GUARDADO CONDICIONAL
-#acceso al última cálculo de MSE (la última epochs) en final_loss
-def validar_y_guardar(model, history):
-    """Aplica el filtro de calidad MSE antes de persistir el modelo."""
+    # Obtenemos el último valor de pérdida (MSE) del historial
     final_loss = history.history['loss'][-1]
+    
     os.makedirs('modelos_rn', exist_ok=True)
+    ruta_modelo = 'modelos_rn/fatmax_v1.h5'
     
-    if final_loss < 0.001:
-        model.save('modelos_rn/fatmax_v1.h5')
-        print(f"ÉXITO: Modelo guardado con MSE: {final_loss:.6f}")
+    print(f"\n--- VALIDACIÓN DE CALIDAD ---")
+    print(f"MSE Final: {final_loss:.8f}")
+   
+    
+    if final_loss <= umbral_mse:
+        model.save(ruta_modelo)
+        print(f"ÉXITO: El modelo supera el filtro de calidad y ha sido guardado.")
     else:
-        print(f"FALLO: Precisión insuficiente (MSE: {final_loss:.6f}).")
-        print("El modelo NO ha sido guardado.")
+        print(f"FALLO: El error es demasiado alto (Umbral: {umbral_mse}).")
+        print("El modelo NO se ha guardado para proteger la versión anterior.")
 
+def ejecutar_entrenamiento():
+    # 1. Carga de datos masiva desde la carpeta datos_entrenamiento
+    X, y = rn_utils.cargar_super_dataset()
+    
+    # 2. Definición del modelo híbrido (HR, VO2)
+    model = tf.keras.Sequential([
+        layers.Dense(64, activation='relu', input_shape=(2,)),  #El número 2 indica que cada ejemplo individual que entra en la red tiene dos características (HR, VO2) <-- 2 columnas
+        layers.Dense(32, activation='relu'),
+        layers.Dense(16, activation='relu'),
+        layers.Dense(1)
+    ])
+    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    
+    # 3. Entrenamiento
+    print(f"Entrenando con {len(X)} muestras de 31 sujetos...")
+    historial = model.fit(X, y, epochs=100, batch_size=32, verbose=1)
+    
+    # 4. Guardado Condicional
+    validar_y_guardar_rn(model, historial)
+    final_mae = historial.history['mae'][-1]
+    print(f"Error Medio Absoluto (MAE): {final_mae:.4f} g/min")
 
-# --- FLUJO PRINCIPAL PRUEBAS ---
 if __name__ == "__main__":
-    # 1. Obtener datos
-    X_train, y_train = obtener_datos_entrenamiento()
-    
-    # 2. Crear arquitectura
-    mi_modelo = crear_modelo_rn()
-    
-    # 3. Entrenar (Prueba de 10 épocas como acordamos)
-    # Cambiar a 1000 cuando para el modelo definitivo
-    historial_final = entrenar_modelo(mi_modelo, X_train, y_train, n_epochs=10)
-    
-    # 4. Validar y Guardar
-    validar_y_guardar(mi_modelo, historial_final)
+    ejecutar_entrenamiento()
