@@ -59,12 +59,13 @@ Para garantizar que la IA se ejecute correctamente en local, se requiere:
  
 ___
 
-##**Créditos y Fuentes de Datos**
+## **Créditos y Fuentes de Datos**
 
 El motor de inferencia de este proyecto ha sido desarrollado y validado utilizando datos 
-de investigación abierta:Dataset Principal: Se ha utilizado el dataset de Zignoli disponible en Kaggle, 
+de investigación abierta:Dataset Principal: Se ha utilizado el dataset de Zignoli disponible en [Dataset de Zignoli en Kaggle](https://www.kaggle.com/datasets/zignoli/fat-oxidation-during-exercise), 
 que contiene perfiles metabólicos detallados de 31 sujetos durante pruebas de esfuerzo.Referencia Científica: 
 El modelo fatmax_v1.h5 utiliza estos datos para aprender la relación entre la Frecuencia Cardíaca (HR) 
 y el Consumo de Oxígeno ($VO_2$) para predecir la oxidación de grasas.
-Agradecimientos: A la comunidad de investigadores que liberan estos datos, permitiendo que proyectos como FatMax_Lab 
+
+**Agradecimientos:** A la comunidad de investigadores que liberan estos datos, permitiendo que proyectos como FatMax_Lab 
 puedan democratizar el acceso a métricas de rendimiento deportivo avanzadas.
