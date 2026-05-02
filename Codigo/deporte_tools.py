@@ -128,8 +128,8 @@ def procesar_sesion_entrenamiento_completo(ruta_archivo, fc_reposo_user=60):
     # 4. Convertir a VO2 
     vo2_datos = convertir_intensidad_en_vo2(intensidades)
 
-    # Obtener Oxidación de Grasas vía Red Neuronal
-    grasas_datos = rn_utils.predecir_oxidacion_grasas(vo2_datos)
+    # 5. Obtener Oxidación de Grasas vía Red Neuronal (Híbrida: FC + VO2)
+    grasas_datos = rn_utils.predecir_oxidacion_grasas(fc_lista, vo2_datos)
 
     return {
         "resumen": resultado['metadatos'],
