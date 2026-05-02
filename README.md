@@ -1,4 +1,4 @@
-# FatMax AI Consultant
+# FatMaxLab
 **Consultoría deportiva avanzada basada en IA para la optimización de la oxidación de grasas.**
 
 Este proyecto es una plataforma de análisis metabólico que utiliza una **Red Neuronal (Keras)** entrenada con datos del estudio original de **Achten & Jeukendrup (2002)**. El sistema integra un modelo de lenguaje local (**Mistral vía Ollama**) para actuar como un consultor experto que interpreta la telemetría de entrenamientos (Garmin/CSV) y factores ambientales.
