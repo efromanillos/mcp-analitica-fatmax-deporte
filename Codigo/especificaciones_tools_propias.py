@@ -20,7 +20,7 @@ TOOLS_PROPIAS = [
                 'properties': {
                     'ruta_archivo': {
                         'type': 'string', 
-                        'description': 'Ruta local al archivo .fit dentro de la carpeta datos/ (ej: datos/ruta_llana.fit)'
+                        'description': 'Ruta local al archivo .fit dentro de la carpeta datos/ (ej: datos_usr/ruta_llana.fit)'
                     },
                     'fc_reposo': {
                         'type': 'integer', 

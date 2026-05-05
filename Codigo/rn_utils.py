@@ -20,7 +20,7 @@ _MODELO_ENTRENADO = None
 #==================================================
 
 
-def cargar_super_dataset(carpeta_datos="datos_entrenamiento"):
+def cargar_super_dataset(carpeta_datos="datos_entrenamiento_rn"):
     X_global = []
     y_global = []
     
@@ -58,7 +58,7 @@ def cargar_super_dataset(carpeta_datos="datos_entrenamiento"):
 #obtenido con el reloj Garmin
 #=======================================================
 
-def predecir_oxidacion_grasas(lista_hr, lista_vo2):
+def predecir_oxidacion_grasas(lista_fc, lista_vo2):
     global _MODELO_ENTRENADO
     ruta_modelo = 'modelos_rn/fatmax_v1.h5'
     
@@ -66,10 +66,11 @@ def predecir_oxidacion_grasas(lista_hr, lista_vo2):
     if _MODELO_ENTRENADO is None:
         if not os.path.exists(ruta_modelo):
             return {"error": "Modelo no encontrado."}
-        _MODELO_ENTRENADO = tf.keras.models.load_model(ruta_modelo)
+        #_MODELO_ENTRENADO = tf.keras.models.load_model(ruta_modelo)
+        _MODELO_ENTRENADO = tf.keras.models.load_model(ruta_modelo, compile=False)
 
     # Preparamos los datos
-    X = np.column_stack((lista_hr, lista_vo2))
+    X = np.column_stack((lista_fc, lista_vo2))
     
     # Predicción ultra rápida desde memoria RAM
     predicciones = _MODELO_ENTRENADO.predict(X, verbose=0)

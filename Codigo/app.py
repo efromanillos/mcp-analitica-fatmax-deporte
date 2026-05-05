@@ -9,6 +9,7 @@ import geoclima_tools
 import deporte_tools
 import json
 import datetime
+import os  # Necesario para el manejo físico de archivos en el puente
 
 # 1. DEFINICIÓN DEL DICCIONARIO DE HERRAMIENTAS
 # Centralizamos las funciones para que el bucle de ejecución sea limpio.
@@ -20,101 +21,196 @@ DICCIONARIO_HERRAMIENTAS = {
 }
 
 # Configuración de la página
-st.set_page_config(page_title="FatMaxLab", page_icon="🚴‍♂️")
+# Usamos layout="wide" para que las 3 columnas centrales tengan espacio suficiente
+st.set_page_config(page_title="FatMaxLab", page_icon="🚴‍♂️", layout="wide")
+
+
+# 2. INICIALIZACIÓN DEL ESTADO (Memoria de Streamlit) 
+# NOTA. Cada vez que se ejecuta en Streamlit algo, se resetea todo (re-run): para que entre reseteos la información
+# previa permanezca, se usa session_state como memoria de sesion
+# (si no Streamlit olvidaría los mensajes del chat, los datos calculados, etc.)
+
+# Con el if se controla que la lista 'historial_mensajes' se cree una vez al principio de cada sesión y no en cada re-run
+if "historial_mensajes" not in st.session_state:
+    st.session_state.historial_mensajes = []
+# 'datos_usr' contiene los resultados procesados de la actividad física del usuario
+if "datos_usr" not in st.session_state:
+    st.session_state.datos_usr = None
+# Control de archivos para evitar notificaciones duplicadas en el historial
+if "ultimo_archivo_notificado" not in st.session_state:
+    st.session_state.ultimo_archivo_notificado = None
+
+#-----------------------------------------------------------------------------------------------------
+
+
+# =========================================================
+# ZONA 1: PANEL DE CONTROL (SIDEBAR)
+# =========================================================
+with st.sidebar:
+    st.title("⚙️ Configuración")
+
+    # Selector de Tema (Simulado con CSS o nativo de Streamlit)
+    modo_oscuro = st.toggle("Modo Oscuro", value=True)
+    
+    st.divider()
+    
+    # Uploader de Modelo y Datos
+    # NOTA: los uploader devuelven el archivo completo en memoria (un buffer con los bytes del archivo), no la ruta al archivo que se sube
+    st.subheader("📁 Gestión de Archivos")
+    archivo_h5 = st.file_uploader("Modelo RN (.h5) [Carpeta: datos_entrenamiento_rn]", type=["h5"])
+    archivo_fit = st.file_uploader("Sesión Garmin (.fit) [Carpeta: datos_usr]", type=["fit"])
+    
+    # --- LÓGICA DEL PUENTE DE ARCHIVOS ---
+    # Si el usuario sube un archivo, lo guardamos físicamente para que Nemo tenga una ruta real que procesar
+    if archivo_fit is not None:
+        ruta_directorio = "datos_usr"
+        if not os.path.exists(ruta_directorio):
+            os.makedirs(ruta_directorio)
+        
+        ruta_completa = os.path.join(ruta_directorio, archivo_fit.name)
+        
+        # Guardado físico en disco
+        with open(ruta_completa, "wb") as f:
+            f.write(archivo_fit.getbuffer())
+        
+        # Notificación silenciosa al historial de Nemo
+        if st.session_state.ultimo_archivo_notificado != archivo_fit.name:
+            aviso_sistema = {
+                "role": "user", 
+                "contenido": f"(SISTEMA: El usuario ha subido un archivo. Está disponible físicamente en: {ruta_completa}. Si se solicita analizar el entrenamiento, usa esta ruta directamente sin pedirla)."
+            }
+            st.session_state.historial_mensajes.append(aviso_sistema)
+            st.session_state.ultimo_archivo_notificado = archivo_fit.name
+            st.toast(f"Archivo cargado en {ruta_directorio}", icon="✅")
+
+    if st.button("🗑️ Reiniciar Laboratorio"):
+        llm_mistral.reiniciar_memoria()
+        st.session_state.historial_mensajes = []
+        st.session_state.datos_usr = None
+        st.session_state.ultimo_archivo_notificado = None
+        st.rerun()
+    st.info("Mistral-Nemo está listo para analizar.")
+
+# =========================================================
+# CUERPO PRINCIPAL (3 COLUMNAS CENTRALES)
+# =========================================================
 
 st.title("🚴‍♂️ FatMaxLab: Análisis de Entrenamientos a través de IA y Redes Neuronales")
 st.markdown("---")
 
-# 2. INICIALIZACIÓN DEL ESTADO (Memoria de Streamlit) 
-# NOTA. Cada vez que se ejecuta en Streamlit algo, se resetea todo (re-run), para que entre reseteos la información
-# previa permanezca, se usa session_state como memoria de sesion
-# (si no Streamlit olvidaría los mensajes del chat, los datos calculados, etc.)
+# Definimos las 3 columnas con pesos proporcionales
+col_estado, col_nemo, col_graficas = st.columns([1, 2, 3])
 
-# Con el if se controla que la lista 'historial_mensajes' se cree una vez al principio de cada sesión
-if "historial_mensajes" not in st.session_state:
-    st.session_state.historial_mensajes = []
 
-# 3. BARRA LATERAL
-with st.sidebar:
-    st.header("Configuración")
-    if st.button("Reiniciar Laboratorio"):
-        llm_mistral.reiniciar_memoria()
-        st.session_state.historial_mensajes = []
+# --- COLUMNA 1: ESTADO / MÉTRICAS RÁPIDAS ---
+with col_estado:
+    st.subheader("🛠️ Estado")
+    if st.session_state.datos_usr:
+        # Mostramos la FC Máxima usando el componente metric
+        st.metric("FC Máx", f"{st.session_state.datos_usr['fc_max_sesion']} bpm")
+        st.success("Datos listos")
+        # Aquí puedes añadir más métricas pequeñas del resumen
+    else:
+        st.warning("Sin datos")
+        st.caption("Carga un archivo .fit para comenzar el análisis.")
+
+
+# --- COLUMNA 2: NEMO AI (EL CHAT) ---
+with col_nemo:
+    st.subheader("🤖 Nemo AI")
+    
+    # Contenedor con scroll para el chat (mantiene la UI limpia si hay muchos mensajes)
+    contenedor_chat = st.container(height=500)
+    
+    with contenedor_chat:
+        # MOSTRAR HISTORIAL EN PANTALLA
+        for mensaje in st.session_state.historial_mensajes:
+            # FILTRO: Solo mostramos si el contenido es una cadena de texto (str)
+            # Además, ocultamos los mensajes de (SISTEMA: ...) para mantener el chat limpio
+            if isinstance(mensaje["contenido"], str) and not mensaje["contenido"].startswith("(SISTEMA:"):
+                with st.chat_message(mensaje["role"]): # Usamos 'role' para que Streamlit reconozca el icono para Nemo
+                    st.markdown(mensaje["contenido"])
+
+    # BUCLE CONVERSACIONAL (Input del usuario)
+    if entrada_usuario := st.chat_input("¿Cómo estuvo mi entrenamiento hoy?"):
+        # Guardar mensaje del usuario en el estado
+        st.session_state.historial_mensajes.append({"role": "user", "contenido": entrada_usuario})
+        
+        # Procesamiento de la respuesta
+        with st.chat_message("assistant"):
+            with st.spinner("El cerebro de la IA está procesando los patrones..."):
+                
+                # --- EL CORAZÓN DEL FLUJO ---
+                # 'indicador_respuesta' nos da la señal: ¿Es texto o es una acción?
+                indicador_respuesta, datos_respuesta = llm_mistral.enviar_pregunta(entrada_usuario)
+                
+                if indicador_respuesta == "ACCION":
+                    # El modelo ha decidido usar una o varias herramientas
+                    for llamada_herramienta in datos_respuesta:
+                        nombre_funcion = llamada_herramienta['function']['name']
+                        argumentos = llamada_herramienta['function']['arguments']
+            
+                        st.caption(f"🔧 Ejecutando herramienta nativa: {nombre_funcion}...")
+            
+                        # Ejecución dinámica y segura
+                        if nombre_funcion in DICCIONARIO_HERRAMIENTAS:
+                            try:
+                                # Los argumentos fluyen directamente desde el JSON del LLM
+                                resultado_tecnico = DICCIONARIO_HERRAMIENTAS[nombre_funcion](**argumentos)
+                                
+                                # Si la función es la de procesar entrenamiento, guardamos el resultado globalmente en datos_usr
+                                if nombre_funcion == "procesar_sesion_entrenamiento_completo":
+                                    st.session_state.datos_usr = resultado_tecnico
+                                    
+                            except Exception as error_ejecucion:
+                                resultado_tecnico = {"error": f"Error en la ejecución: {str(error_ejecucion)}"}
+                        else:
+                            resultado_tecnico = {"error": f"La herramienta '{nombre_funcion}' no está registrada en el sistema."}
+
+                        # EL CABLE DE RETORNO: Inyectamos resultado_tecnico tras la ejecución
+                        ahora_dt = datetime.datetime.now()
+                        ahora = ahora_dt.strftime("%H:%M")
+                        periodo = "MAÑANA (AM)" if ahora_dt.hour < 12 else "TARDE/NOCHE (PM)"
+
+                        # --- SOLUCIÓN AL ERROR DE SERIALIZACIÓN ---
+                        # Usamos un 'default' en json.dumps para que cualquier objeto datetime se convierta en texto ISO
+                        resultado_tecnico_json = json.dumps(
+                        resultado_tecnico, 
+                        default=lambda x: x.isoformat() if hasattr(x, 'isoformat') else str(x)
+)
+
+                        contexto_retorno = (
+                            f"Resultado técnico de {nombre_funcion}: {resultado_tecnico_json}. "
+                            f"Hora actual: {ahora}. "
+                            "MISION: Eres un Bioestadístico deportivo. Tu respuesta DEBE seguir este formato: "
+                            "1. RESUMEN: (Fecha y duración de la sesión). "
+                            "2. ANALISIS DE PATRONES: (Busca el valor máximo en 'grasas_por_segundo' y dime a qué FC y VO2 ocurrió exactamente). "
+                            "3. DIAGNÓSTICO METABÓLICO: (¿Es eficiente? ¿Oxida grasas a intensidades altas o bajas?). "
+                            "4. RECOMENDACIÓN: (Basada en la hora y el clima actual). "
+                            "REGLA: Prohibido dar definiciones teóricas de qué es el FatMax. Ve directo al grano con los números."
+                        )
+
+                        _, explicacion_final = llm_mistral.enviar_pregunta(contexto_retorno)
+                        
+                        st.markdown(explicacion_final)
+                        # Guardamos la respuesta final en el historial
+                        st.session_state.historial_mensajes.append({"role": "assistant", "contenido": explicacion_final})
+                
+                else:
+                    # Si el indicador es "RESPUESTA", mostramos el texto directamente
+                    st.markdown(datos_respuesta)
+                    st.session_state.historial_mensajes.append({"role": "assistant", "contenido": datos_respuesta})
+
+        # Forzamos refresco final para asentar el estado y evitar parpadeos de re-run
         st.rerun()
-    st.info("Utiliza Mistral-Nemo para analizar tu entrenamiento y el clima actual.")
 
-# 4. MOSTRAR HISTORIAL EN PANTALLA
-for mensaje in st.session_state.historial_mensajes:
-    # FILTRO: Solo mostramos si el contenido es una cadena de texto (str)
-    # Esto evita que los objetos técnicos de la IA (JSON/ToolCalls) ensucien el chat
-    if isinstance(mensaje["contenido"], str):
-        with st.chat_message(mensaje["role"]): # Usamos 'role' para que Streamlit reconozca el icono
-            st.markdown(mensaje["contenido"])
 
-# 5. BUCLE PRINCIPAL DE INTERACCIÓN (SISTEMA NATIVO)
-if entrada_usuario := st.chat_input("¿Cómo estuvo mi entrenamiento hoy?"):
-    # Guardar y mostrar mensaje del usuario
-    st.session_state.historial_mensajes.append({"role": "user", "contenido": entrada_usuario})
-    with st.chat_message("user"):
-        st.markdown(entrada_usuario)
-
-    with st.chat_message("assistant"):
-        with st.spinner("El cerebro de la IA está procesando los patrones..."):
-            
-            # --- EL CORAZÓN DEL FLUJO ---
-            # 'indicador_respuesta' nos da la señal: ¿Es texto o es una acción?
-            # 'datos_respuesta' contiene el mensaje o la lista de herramientas
-            indicador_respuesta, datos_respuesta = llm_mistral.enviar_pregunta(entrada_usuario)
-            
-            if indicador_respuesta == "ACCION":
-                # El modelo ha decidido usar una o varias herramientas
-                for llamada_herramienta in datos_respuesta:
-                    nombre_funcion = llamada_herramienta['function']['name']
-                    argumentos = llamada_herramienta['function']['arguments']
-        
-                    st.caption(f"🔧 Ejecutando herramienta nativa: {nombre_funcion}...")
-        
-                    # Ejecución dinámica y segura
-                    if nombre_funcion in DICCIONARIO_HERRAMIENTAS:
-                        try:
-                            # Los argumentos fluyen directamente desde el JSON del LLM
-                            # NOTA: Los dos ** es el desempaquetado de diccionarios que hace Python, obtiene los valores de las claves
-                            resultado_tecnico = DICCIONARIO_HERRAMIENTAS[nombre_funcion](**argumentos) 
-                        except Exception as error_ejecucion:
-                            resultado_tecnico = {"error": f"Error en la ejecución: {str(error_ejecucion)}"}
-                    else:
-                        resultado_tecnico = {"error": f"La herramienta '{nombre_funcion}' no está registrada en el sistema."}
-
-                    # EL CABLE DE RETORNO: Inyectamos resultado_tecnico tras la ejecución de la función a mistral-nemo
-                    # Esto es clave, porque es cuando el modelo recupera la salida de las funciones que ha pedido ejecutar 
-                    # a Python (function calling)
-                    #Le pasamos al modelo la hora actual para que responda el clima acorde al momento del día (diurno, nocturno)
-                    
-                    ahora_dt = datetime.datetime.now()
-                    ahora = ahora_dt.strftime("%H:%M")
-                    periodo = "MAÑANA (AM)" if ahora_dt.hour < 12 else "TARDE/NOCHE (PM)"
-
-                    contexto_retorno = (
-                        f"Resultado de la herramienta {nombre_funcion}: {json.dumps(resultado_tecnico)}. "
-                        f"Hora actual en el laboratorio: {ahora} ({periodo}). "
-                        "Explica estos datos al usuario de forma clara y técnica. "
-                        "Sintetiza la info y da una recomendación de entrenamiento coherente con la hora y el clima."
-                        "REGLA DE MEMORIA: Antes de pedir un dato al usuario (como FC_max o reposo), "
-                        "revisa el historial de arriba. Si ya te los ha dado, NO los vuelvas a pedir, "
-                        "utilízalos directamente para tus conclusiones."
-                    )
-                    
-
-                    _, explicacion_final = llm_mistral.enviar_pregunta(contexto_retorno)
-                    
-                    st.markdown(explicacion_final)
-                    # Guardamos la respuesta final en el historial
-                    st.session_state.historial_mensajes.append({"role": "assistant", "contenido": explicacion_final})
-            
-            else:
-                # Si el indicador es "RESPUESTA", mostramos el texto directamente
-                st.markdown(datos_respuesta)
-                st.session_state.historial_mensajes.append({"role": "assistant", "contenido": datos_respuesta})
-
-    # Forzamos refresco final para asentar el estado y evitar parpadeos de re-run
-    st.rerun()
+# --- COLUMNA 3: GRÁFICAS / LABORATORIO VISUAL ---
+with col_graficas:
+    st.subheader("📊 Análisis Visual")
+    if st.session_state.datos_usr:
+        st.info("Aquí pintaremos mañana las curvas de oxidación de grasas y patrones de VO2.")
+        # Espacio reservado para las figuras de Matplotlib/Plotly
+    else:
+        # Placeholder visual mientras no hay datos
+        st.image("https://via.placeholder.com/600x400.png?text=Esperando+Análisis+de+Patrones", use_container_width=True)

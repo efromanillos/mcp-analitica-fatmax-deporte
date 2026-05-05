@@ -17,7 +17,7 @@ import rn_utils
 #a partir de un archivo .fit
 #========================================
 
-#ruta_archivo = 'datos\ruta_llana.fit'
+#ruta_archivo = 'datos_usr\ruta_llana.fit'
 
 from fitparse import FitFile
 
