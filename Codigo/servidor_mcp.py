@@ -1,9 +1,9 @@
-#==========================================
+#==========================================================
 #MODULO servidor_mcp.py
 #Se incicializa el servidor
 #Se registran las herramientas
-#que podrá usar el modelo (ollama/Mistral)
-#=========================================
+#que podrá usar el modelo (ollama/Mistral) via servidor MCP
+#==========================================================
 
 
 # NOTA: para hacer pruebas con el servidor MCP con el entorno virtual activado en el cmd ejecutar el siguiente comando:
@@ -16,7 +16,7 @@
 from mcp.server.fastmcp import FastMCP
 import deporte_tools  # Aquí están las funciones de cálculos de Intensidades, VO2 y orquestadora
 import geoclima_tools #Aquí están las funciones de geolocalización por IP y clima
-
+import graficas_tools
 
 # NOTA_1: NO es necesario llamar la función definida aquí igual que en deporte_tools.py pero se decide hacerlo por claridad
 
@@ -77,11 +77,28 @@ def obtener_clima_local(lat: float, lon: float) -> dict:
     """
     return geoclima_tools.obtener_clima_local(lat, lon)
 
-#==========================================
-#TOOLS PARA GRÁFICAS: en proceso de implementación!!
-#==========================================
+#===================
+#TOOLS PARA GRÁFICAS
+#===================
 
+@mcp.tool()
+def graficar_oxidacion_grasas(lista_grasas: list[float]) -> str:
+    """
+    Solicita la generación de la gráfica de oxidación de grasas. 
+    """
+    # Ejecutamos la lógica (la app capturará la salida)
+    graficas_tools.graficar_oxidacion_grasas(lista_grasas)
+    
+    # Devolvemos un mensaje de confirmación que Nemo pueda leer
+    return "Gráfica de oxidación de grasas generada correctamente en el panel visual."
 
+@mcp.tool()
+def graficar_vo2(lista_vo2: list[float]) -> str:
+    """
+    Solicita la generación de la gráfica de VO2.
+    """
+    graficas_tools.graficar_vo2(lista_vo2)
+    return "Gráfica de VO2 generada correctamente en el panel visual."
 
 #=============================
 #Punto de entrada para pruebas

@@ -114,7 +114,7 @@ def procesar_sesion_entrenamiento_completo(ruta_archivo, fc_reposo_user=60):
     # 2. Preparar lista de FC y obtener el pico máximo alcanzado en la sesión
     fc_lista = [p['fc'] for p in resultado['puntos'] if p['fc'] is not None]
     
-    # Cambiamos fc_max_real por fc_max_sesion para mayor precisión semántica
+    
     fc_max_sesion = resultado['metadatos'].get('fc_max')
 
     # Validación de seguridad: si no hay FC max registrada en los metadatos del archivo, 

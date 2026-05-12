@@ -28,7 +28,7 @@ def cargar_super_dataset(carpeta_datos="datos_entrenamiento_rn"):
     
     for archivo in archivos:
         # 1. Carga limpia: Por defecto Pandas usa coma como separador 
-        # y punto como decimal, que es exactamente lo que tienen tus archivos.
+        # y punto como decimal, que es exactamente lo que tienen los archivos de los dataset de Kaggle.
         df = pd.read_csv(archivo)
         
         # 2. Aseguramos que sean números (por si hay algún NaN o dato corrupto)
@@ -38,7 +38,7 @@ def cargar_super_dataset(carpeta_datos="datos_entrenamiento_rn"):
         
         # 3. Calculamos pérdida de grasa en función de VO2
         vo2 = df['Oxygen'] / 1000.0  # ml/min a L/min
-        hr = df['HR']
+        hr = df['HR']                #frecuencia cardiaca
         
         num = 10011.958 * vo2
         den = 900 + (76.7 * vo2)
@@ -66,7 +66,6 @@ def predecir_oxidacion_grasas(lista_fc, lista_vo2):
     if _MODELO_ENTRENADO is None:
         if not os.path.exists(ruta_modelo):
             return {"error": "Modelo no encontrado."}
-        #_MODELO_ENTRENADO = tf.keras.models.load_model(ruta_modelo)
         _MODELO_ENTRENADO = tf.keras.models.load_model(ruta_modelo, compile=False)
 
     # Preparamos los datos

@@ -7,22 +7,58 @@ import streamlit as st
 import llm_mistral
 import geoclima_tools
 import deporte_tools
+import graficas_tools
 import json
 import datetime
 import os  # Necesario para el manejo físico de archivos en el puente
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg') # Esto evita errores de hilos (threads) en servidores web
+
+
+# 0. CONFIGURACIÓN DE LA PÁGINA
+# Usamos layout="wide" para que las 3 columnas centrales tengan espacio suficiente
+st.set_page_config(page_title="FatMaxLab", page_icon="🚴‍♂️", layout="wide")
+
+#Título principal, cabecera de la página
+st.title("🚴‍♂️ FatMaxLab: Análisis de Entrenamientos a través de IA y Redes Neuronales")
+st.markdown("---")
+
+# Definimos las 3 columnas con pesos proporcionales: 1 + 2 + 3 = 6,  la columna 1 ocupa 1/6, la segunda 2/6...
+col_estado, col_nemo, col_graficas = st.columns([1, 2, 3])
+
+
+# --- Envoltorios (WRAPPERS) PARA REDIRIGIR LAS GRÁFICAS A LA COLUMNA 3 ---
+def envoltorio_graficar_grasas(lista_grasas):
+    # 1. Generamos la figura
+    fig = graficas_tools.graficar_oxidacion_grasas(lista_grasas)
+    
+    # 2. La guardamos en el estado
+    st.session_state.figura_grasas = fig
+    
+    # 3. FORZAMOS el refresco para que aparezca en la columna 3
+    st.rerun() 
+    return "Gráfica de oxidación de grasas generada y visible en el panel derecho."
+
+def envoltorio_graficar_vo2(lista_vo2):
+    fig = graficas_tools.graficar_vo2(lista_vo2)
+    st.session_state.figura_vo2 = fig
+    st.rerun()
+    return "Gráfica de VO2 generada y visible en el panel derecho."
 
 # 1. DEFINICIÓN DEL DICCIONARIO DE HERRAMIENTAS
 # Centralizamos las funciones para que el bucle de ejecución sea limpio.
+
 DICCIONARIO_HERRAMIENTAS = {
     "obtener_clima_local": geoclima_tools.obtener_clima_local,
     "obtener_ubicacion_automatica": geoclima_tools.obtener_ubicacion_automatica,
     "procesar_sesion_entrenamiento_completo": deporte_tools.procesar_sesion_entrenamiento_completo,
-    "calcular_zonas_entrenamiento": deporte_tools.calcular_zonas_entrenamiento
+    "calcular_zonas_entrenamiento": deporte_tools.calcular_zonas_entrenamiento,
+    
+    # Usamos los wrappers en lugar de las funciones directas
+    "graficar_oxidacion_grasas": envoltorio_graficar_grasas,
+    "graficar_vo2": envoltorio_graficar_vo2
 }
-
-# Configuración de la página
-# Usamos layout="wide" para que las 3 columnas centrales tengan espacio suficiente
-st.set_page_config(page_title="FatMaxLab", page_icon="🚴‍♂️", layout="wide")
 
 
 # 2. INICIALIZACIÓN DEL ESTADO (Memoria de Streamlit) 
@@ -39,6 +75,11 @@ if "datos_usr" not in st.session_state:
 # Control de archivos para evitar notificaciones duplicadas en el historial
 if "ultimo_archivo_notificado" not in st.session_state:
     st.session_state.ultimo_archivo_notificado = None
+
+if "figura_grasas" not in st.session_state:
+    st.session_state.figura_grasas = None
+if "figura_vo2" not in st.session_state:
+    st.session_state.figura_vo2 = None
 
 #-----------------------------------------------------------------------------------------------------
 
@@ -73,6 +114,11 @@ with st.sidebar:
         with open(ruta_completa, "wb") as f:
             f.write(archivo_fit.getbuffer())
         
+        #VERIFICACIÓN DE INTEGRIDAD
+        tamaño = os.path.getsize(ruta_completa)
+        st.sidebar.info(f"📁 {archivo_fit.name} guardado")
+        st.sidebar.caption(f"Tamaño: {tamaño} bytes") # Esto te confirma que no es un archivo de 0 bytes
+        
         # Notificación silenciosa al historial de Nemo
         if st.session_state.ultimo_archivo_notificado != archivo_fit.name:
             aviso_sistema = {
@@ -94,12 +140,6 @@ with st.sidebar:
 # =========================================================
 # CUERPO PRINCIPAL (3 COLUMNAS CENTRALES)
 # =========================================================
-
-st.title("🚴‍♂️ FatMaxLab: Análisis de Entrenamientos a través de IA y Redes Neuronales")
-st.markdown("---")
-
-# Definimos las 3 columnas con pesos proporcionales
-col_estado, col_nemo, col_graficas = st.columns([1, 2, 3])
 
 
 # --- COLUMNA 1: ESTADO / MÉTRICAS RÁPIDAS ---
@@ -142,6 +182,7 @@ with col_nemo:
                 
                 # --- EL CORAZÓN DEL FLUJO ---
                 # 'indicador_respuesta' nos da la señal: ¿Es texto o es una acción?
+                #Aquí se envía la pregunta del usuario a Nemo y este analiza si contestar texto o proceder a un function calling
                 indicador_respuesta, datos_respuesta = llm_mistral.enviar_pregunta(entrada_usuario)
                 
                 if indicador_respuesta == "ACCION":
@@ -153,19 +194,24 @@ with col_nemo:
                         st.caption(f"🔧 Ejecutando herramienta nativa: {nombre_funcion}...")
             
                         # Ejecución dinámica y segura
+                        # --- BUSCA ESTA PARTE DENTRO DEL BUCLE DE HERRAMIENTAS ---
                         if nombre_funcion in DICCIONARIO_HERRAMIENTAS:
                             try:
-                                # Los argumentos fluyen directamente desde el JSON del LLM
+                                # Ejecutamos la función
                                 resultado_tecnico = DICCIONARIO_HERRAMIENTAS[nombre_funcion](**argumentos)
                                 
-                                # Si la función es la de procesar entrenamiento, guardamos el resultado globalmente en datos_usr
+                                
+                                # Si la función devolvió una FIGURA de Matplotlib (de los envoltorios)
+                                # No podemos meter la figura en el JSON. Metemos un texto de confirmación.
+                                if nombre_funcion in ["graficar_oxidacion_grasas", "graficar_vo2"]:
+                                    resultado_tecnico = f"Gráfica {nombre_funcion} generada y mostrada en pantalla."
+                                
                                 if nombre_funcion == "procesar_sesion_entrenamiento_completo":
                                     st.session_state.datos_usr = resultado_tecnico
                                     
                             except Exception as error_ejecucion:
                                 resultado_tecnico = {"error": f"Error en la ejecución: {str(error_ejecucion)}"}
-                        else:
-                            resultado_tecnico = {"error": f"La herramienta '{nombre_funcion}' no está registrada en el sistema."}
+
 
                         # EL CABLE DE RETORNO: Inyectamos resultado_tecnico tras la ejecución
                         ahora_dt = datetime.datetime.now()
@@ -206,11 +252,24 @@ with col_nemo:
 
 
 # --- COLUMNA 3: GRÁFICAS / LABORATORIO VISUAL ---
+
+
 with col_graficas:
     st.subheader("📊 Análisis Visual")
-    if st.session_state.datos_usr:
-        st.info("Aquí pintaremos mañana las curvas de oxidación de grasas y patrones de VO2.")
-        # Espacio reservado para las figuras de Matplotlib/Plotly
-    else:
-        # Placeholder visual mientras no hay datos
-        st.image("https://via.placeholder.com/600x400.png?text=Esperando+Análisis+de+Patrones", use_container_width=True)
+    
+    # EL TRUCO (Descoméntalo así):
+    if st.session_state.datos_usr and (st.session_state.figura_grasas is None):
+        # Si hay datos pero no hay fotos, las creamos nosotros por si Nemo falla
+        lista_g = st.session_state.datos_usr.get('grasas_por_segundo', [])
+        lista_v = st.session_state.datos_usr.get('vo2_por_segundo', [])
+        
+        if lista_g:
+            st.session_state.figura_grasas = graficas_tools.graficar_oxidacion_grasas(lista_g)
+        if lista_v:
+            st.session_state.figura_vo2 = graficas_tools.graficar_vo2(lista_v)
+
+    # RENDERIZADO (Lo que ve el usuario)
+    if st.session_state.figura_grasas:
+        st.pyplot(st.session_state.figura_grasas, use_container_width=True)
+    if st.session_state.figura_vo2:
+        st.pyplot(st.session_state.figura_vo2, use_container_width=True)
