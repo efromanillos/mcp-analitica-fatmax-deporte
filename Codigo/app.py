@@ -226,14 +226,22 @@ with col_nemo:
 )
 
                         contexto_retorno = (
-                            f"Resultado técnico de {nombre_funcion}: {resultado_tecnico_json}. "
-                            f"Hora actual: {ahora}. "
-                            "MISION: Eres un Bioestadístico deportivo. Tu respuesta DEBE seguir este formato: "
-                            "1. RESUMEN: (Fecha y duración de la sesión). "
-                            "2. ANALISIS DE PATRONES: (Busca el valor máximo en 'grasas_por_segundo' y dime a qué FC y VO2 ocurrió exactamente). "
-                            "3. DIAGNÓSTICO METABÓLICO: (¿Es eficiente? ¿Oxida grasas a intensidades altas o bajas?). "
-                            "4. RECOMENDACIÓN: (Basada en la hora y el clima actual). "
-                            "REGLA: Prohibido dar definiciones teóricas de qué es el FatMax. Ve directo al grano con los números."
+                            f"RESULTADO TÉCNICO DE {nombre_funcion}: {resultado_tecnico_json}. "
+                            f"HORA ACTUAL: {ahora}. "
+                            "MISION: Eres un Bioestadístico Deportivo experto en fisiología metabólica. "
+                            "Tu respuesta DEBE seguir estrictamente este formato y reglas: "
+                            
+                            "1. RESUMEN: (Indica fecha y duración total de la sesión basándote solo en el JSON). "
+                            "2. ANÁLISIS DE PATRONES: (Busca el valor máximo en 'grasas_por_segundo' y dime a qué FC ocurrió exactamente). "
+                            "3. DIAGNÓSTICO METABÓLICO: (Analiza si la oxidación de grasas es eficiente según los valores numéricos recibidos). "
+                            "4. RECOMENDACIÓN: (Basada exclusivamente en la hora actual y los datos de la sesión). "
+                            
+                            "--- REGLAS CRÍTICAS DE VERACIDAD --- "
+                            "A. PROHIBIDO INVENTAR DATOS: Si un sensor no está presente (ej. Potencia/Vatios), NO lo menciones bajo ningún concepto. "
+                            "B. CIÑETE AL JSON: Solo usa los valores de FC, grasas y calorías que aparecen en el objeto técnico. "
+                            "C. SIN TEORÍA: No definas qué es el FatMax. Ve directo a los resultados del usuario. "
+                            "D. TONO: Profesional, seco y directo. Usa negritas para resaltar los hitos numéricos."
+                            "E. CLIMA Y LOCALIZACIÓN: si te preguntan el clima y la localización contesta solo esa infomración"
                         )
 
                         _, explicacion_final = llm_mistral.enviar_pregunta(contexto_retorno)
@@ -257,7 +265,7 @@ with col_nemo:
 with col_graficas:
     st.subheader("📊 Análisis Visual")
     
-    # EL TRUCO (Descoméntalo así):
+    # REFUERZO GRÁFICAS
     if st.session_state.datos_usr and (st.session_state.figura_grasas is None):
         # Si hay datos pero no hay fotos, las creamos nosotros por si Nemo falla
         lista_g = st.session_state.datos_usr.get('grasas_por_segundo', [])
